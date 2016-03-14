@@ -24,6 +24,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,17 +54,22 @@ public class Inbox extends Thread
     public void run() {
         try {
             ServerSocket serverSocket = new ServerSocket(Port);
+            serverSocket.setSoTimeout(3000);
             address = serverSocket.getLocalSocketAddress().toString();
             System.out.println("Inbox started: " + address);
             
             while (_keepRunning) {
-                Socket socket = serverSocket.accept();
-
-                NewDelivery echo = new NewDelivery(socket);
-                Thread thread = new Thread(echo);
-                thread.start();
-                
-                Thread.yield();
+                try{
+                    Socket socket = serverSocket.accept();
+                    
+                    NewDelivery ndelivery = new NewDelivery(socket);
+                    Thread thread = new Thread(ndelivery);
+                    thread.start();
+                }catch(SocketTimeoutException te){}
+                catch(Exception e){}
+                finally{
+                    Thread.yield();
+                }   
             }
             
             System.out.println("Inbox closed: " + address);

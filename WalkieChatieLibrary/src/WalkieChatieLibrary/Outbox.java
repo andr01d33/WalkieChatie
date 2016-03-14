@@ -9,8 +9,11 @@
  */
 package WalkieChatieLibrary;
 
+import DataContract.Contact;
+import DataContract.DataTypes;
 import static DataContract.DataTypes.MessageType.Message_Delivery_Successful;
 import DataContract.Letter;
+import DataContract.Message;
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
 import java.io.ByteArrayInputStream;
@@ -23,10 +26,8 @@ import java.net.Socket;
 
 public class Outbox
 {
-    private int _portInbox;
-    public Outbox(int port_inbox)
+    public Outbox()
     {
-        _portInbox = port_inbox;
     }
     
     public boolean send(Letter msg)
@@ -57,7 +58,7 @@ public class Outbox
             replyMsg = (Letter) decoder.readObject();
 
             //System.out.println("Auto-reply: " + replyMsg.getMessage().getContent());
-            if(replyMsg.getMessageType() == Message_Delivery_Successful.ordinal())
+            if(replyMsg.getMessageType() == Message_Delivery_Successful)
                 msgSent = true;
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Client could not make connection: " + e);
@@ -72,6 +73,26 @@ public class Outbox
           }
         
         return msgSent;
+    }
+    
+    public void sendAsync(Letter msg)
+    {
+        NewLetter letter = new NewLetter(msg);
+        Thread thread = new Thread(letter);
+        thread.start();
+    }
+    
+    private class NewLetter implements Runnable {
+
+        private Letter letter;
+        public NewLetter(Letter msg) {
+            this.letter = msg;
+        }
+
+        @Override
+        public void run() {
+            send(letter);
+        }
     }
 }
 

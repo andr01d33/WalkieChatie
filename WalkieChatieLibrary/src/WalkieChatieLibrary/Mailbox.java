@@ -33,7 +33,7 @@ public class Mailbox implements DataTypes.MessageListener
     public Mailbox(Contact ownerInfo)
     {
         this.listeners = new ArrayList<>();
-        outbox = new Outbox(ownerInfo.getPort());   
+        outbox = new Outbox();   
         inbox = new Inbox(ownerInfo.getPort());
         addressBook = new AddressBook();
         onwer = ownerInfo;
@@ -61,7 +61,7 @@ public class Mailbox implements DataTypes.MessageListener
         return outbox.send(letter);
     }
     
-    public boolean sendAll(String msg)
+    public void sendAll(String msg)
     {
         Letter letter = new Letter(
                 DataTypes.MessageType.Message_Broadcast,
@@ -70,10 +70,9 @@ public class Mailbox implements DataTypes.MessageListener
                 new Message(msg)
         );
         
-        return outbox.send(letter);
+        outbox.send(letter);
     }
     
-    //client login
     private boolean updateClientStatus(DataTypes.MessageType type)
     {
         if (isServer) return false;
@@ -87,6 +86,7 @@ public class Mailbox implements DataTypes.MessageListener
         return outbox.send(letter);
     }
     
+    //client login
     public boolean login()
     {
         return updateClientStatus(DataTypes.MessageType.User_Login);
@@ -129,7 +129,7 @@ public class Mailbox implements DataTypes.MessageListener
         String msg = "Failed to send \"" + letter.getMessage().getContent() + "\", " +
                 name + " is offline or is invisible.";
         
-        letter.setMessageType(MessageType.Message_Delivery_Failed.ordinal());
+        letter.setMessageType(MessageType.Message_Delivery_Failed);
         letter.setMessage(new Message(msg));
         letter.setRecipient(letter.getSender());
         
@@ -163,7 +163,7 @@ public class Mailbox implements DataTypes.MessageListener
                 break;
             }
             
-            MessageType msgType = MessageType.parse(letter.getMessageType());
+            MessageType msgType = letter.getMessageType();
             switch(msgType)
             {
                 case Message_Individual:

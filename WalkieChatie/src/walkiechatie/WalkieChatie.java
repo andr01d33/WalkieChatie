@@ -59,7 +59,7 @@ public class WalkieChatie implements DataTypes.MessageListener
     
     public void showMessage(Letter letter)
     {
-        DataTypes.MessageType msgType = DataTypes.MessageType.parse(letter.getMessageType());
+        DataTypes.MessageType msgType = letter.getMessageType();
         
         String type = " ";
         switch (msgType)

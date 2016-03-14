@@ -26,25 +26,5 @@ public abstract class DataTypes {
         User_Update,
         User_Login,
         User_Logout;
-        
-        public static MessageType parse(int x) {
-            switch (x) {
-                case 0:
-                    return Message_Individual;
-                case 1:
-                    return Message_Broadcast;
-                case 2:
-                    return Message_Delivery_Successful;
-                case 3:
-                        return Message_Delivery_Failed;
-                case 4:
-                        return User_Update;
-                case 5:
-                        return User_Login;
-                case 6:
-                        return User_Logout;
-            }
-            return null;
-        }
     };
 }

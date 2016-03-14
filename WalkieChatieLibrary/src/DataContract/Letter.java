@@ -5,12 +5,14 @@
  */
 package DataContract;
 
+import DataContract.DataTypes.MessageType;
+
 /**
  *
  * @author AndyChen
  */
 public class Letter {
-    private int _messageType;
+    private MessageType _messageType;
     private Contact _recipient;
     private Contact _sender;
     private Message _message;
@@ -21,17 +23,17 @@ public class Letter {
     }
     public Letter(DataTypes.MessageType type, Contact recipient, Contact sender, Message msg)
     {
-        _messageType = type.ordinal();
+        _messageType = type;
         _recipient = recipient;
         _sender = sender;    
         _message = msg;
     }
     
-    public int getMessageType()
+    public MessageType getMessageType()
     {
         return _messageType;    
     }
-    public void setMessageType(int messageType)
+    public void setMessageType(MessageType messageType)
     {
         _messageType = messageType;    
     }
