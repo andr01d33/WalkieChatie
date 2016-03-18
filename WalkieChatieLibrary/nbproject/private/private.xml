@@ -4,13 +4,12 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group name="WalkieChatieSolution"/>
         <group>
-            <file>file:/C:/Users/Andy/Documents/GitHub/WalkieChatie/WalkieChatieLibrary/src/DataContract/Letter.java</file>
             <file>file:/C:/Users/Andy/Documents/GitHub/WalkieChatie/WalkieChatieLibrary/src/WalkieChatieLibrary/Inbox.java</file>
-            <file>file:/C:/Users/Andy/Documents/GitHub/WalkieChatie/WalkieChatieLibrary/src/WalkieChatieLibrary/AddressBook.java</file>
-            <file>file:/C:/Users/Andy/Documents/GitHub/WalkieChatie/WalkieChatieLibrary/src/DataContract/Message.java</file>
-            <file>file:/C:/Users/Andy/Documents/GitHub/WalkieChatie/WalkieChatieLibrary/src/DataContract/DataTypes.java</file>
+            <file>file:/C:/Users/Andy/Documents/GitHub/WalkieChatie/WalkieChatieLibrary/src/DataContract/Config.java</file>
             <file>file:/C:/Users/Andy/Documents/GitHub/WalkieChatie/WalkieChatieLibrary/src/WalkieChatieLibrary/Outbox.java</file>
+            <file>file:/C:/Users/Andy/Documents/GitHub/WalkieChatie/WalkieChatieLibrary/src/WalkieChatieLibrary/MailboxServer.java</file>
             <file>file:/C:/Users/Andy/Documents/GitHub/WalkieChatie/WalkieChatieLibrary/src/WalkieChatieLibrary/Mailbox.java</file>
+            <file>file:/C:/Users/Andy/Documents/GitHub/WalkieChatie/WalkieChatieLibrary/src/WalkieChatieLibrary/MailboxClient.java</file>
         </group>
     </open-files>
 </project-private>

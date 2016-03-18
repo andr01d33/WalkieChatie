@@ -17,13 +17,13 @@ import DataContract.DataTypes.MessageListener;
  */
 public class WalkieChatieServer implements MessageListener
 {
-    private Mailbox _mailbox;
+    private MailboxServer _mailbox;
 
     public WalkieChatieServer() {
     }
 
     public void startServer() {
-        _mailbox = new Mailbox(new Contact(Config.SERVER_NAME, Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP));
+        _mailbox = new MailboxServer(new Contact(Config.SERVER_NAME, Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP));
         _mailbox.addNewMessageListener(this);
         _mailbox.start();
     }

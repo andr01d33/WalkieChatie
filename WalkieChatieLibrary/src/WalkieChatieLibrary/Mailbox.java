@@ -21,25 +21,25 @@ import java.util.Queue;
  *
  * @author AndyChen
  */
-public class Mailbox implements DataTypes.MessageListener
+public abstract class Mailbox implements DataTypes.MessageListener
 {
-    private final Inbox inbox;
-    private final Outbox outbox;
+    protected final Inbox inbox;
+    protected final Outbox outbox;
     public final AddressBook addressBook;
     public final Contact onwer;
-    public final boolean isServer;
     public Queue<Letter> LetterQueue;
     
     public Mailbox(Contact ownerInfo)
     {
-        this.listeners = new ArrayList<>();
-        outbox = new Outbox();   
-        inbox = new Inbox(ownerInfo.getPort());
-        addressBook = new AddressBook();
         onwer = ownerInfo;
         
-        isServer = (onwer.getName() == null ? Config.SERVER_NAME == null : onwer.getName().equals(Config.SERVER_NAME));
+        addressBook = new AddressBook();
         LetterQueue = new LinkedList<>();
+        
+        outbox = new Outbox();   
+        inbox = new Inbox(onwer.getPort());    
+        
+        this.listeners = new ArrayList<>();
     }
     
     //start receiving messages
@@ -49,33 +49,8 @@ public class Mailbox implements DataTypes.MessageListener
         inbox.start();
     }
     
-    public boolean send(String userName, String msg)
+    protected boolean updateClientStatus(DataTypes.MessageType type)
     {
-        Letter letter = new Letter(
-                DataTypes.MessageType.Message_Individual,
-                new Contact(userName, Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP),
-                onwer,
-                new Message(msg)
-        );
-        
-        return outbox.send(letter);
-    }
-    
-    public void sendAll(String msg)
-    {
-        Letter letter = new Letter(
-                DataTypes.MessageType.Message_Broadcast,
-                new Contact(Config.SERVER_NAME, Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP),
-                onwer,
-                new Message(msg)
-        );
-        
-        outbox.send(letter);
-    }
-    
-    private boolean updateClientStatus(DataTypes.MessageType type)
-    {
-        if (isServer) return false;
         Letter letter = new Letter(
                 type,
                 new Contact(onwer.getName(), Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP),
@@ -86,65 +61,7 @@ public class Mailbox implements DataTypes.MessageListener
         return outbox.send(letter);
     }
     
-    //client login
-    public boolean login()
-    {
-        return updateClientStatus(DataTypes.MessageType.User_Login);
-    }
-    
-    public boolean logout()
-    {
-        inbox.stopService();
-        return updateClientStatus(DataTypes.MessageType.User_Logout);
-    }
-    
-    //server to client
-    public boolean forward(Letter letter)
-    {
-        //look up real ip address and port for recipient
-        String name = letter.getRecipient().getName();
-        
-        Contact recipient = addressBook.Lookup(name);
-        if (recipient == null)
-        {
-            returnLetter(letter);
-            return false;
-        }
-        
-        letter.setRecipient(recipient);
-        if (!outbox.send(letter))
-        {
-            returnLetter(letter);
-            return false;
-        }
-        
-        return true;
-    }
-    
-    public void returnLetter(Letter letter)
-    {
-        //look up real ip address and port for recipient
-        String name = letter.getRecipient().getName();
-        
-        String msg = "Failed to send \"" + letter.getMessage().getContent() + "\", " +
-                name + " is offline or is invisible.";
-        
-        letter.setMessageType(MessageType.Message_Delivery_Failed);
-        letter.setMessage(new Message(msg));
-        letter.setRecipient(letter.getSender());
-        
-        outbox.send(letter);
-    }
-
-    public void broadcast(Letter letter)
-    {
-        for (Map.Entry<String, Contact> entry : addressBook.map.entrySet()) {
-            letter.setRecipient(entry.getValue());
-            outbox.send(letter);
-        }    
-    }
-    
-    private synchronized void stackLetter(Letter letter) {
+    protected synchronized void stackLetter(Letter letter) {
         if (letter != null) {
             LetterQueue.add(letter);
 
@@ -155,57 +72,7 @@ public class Mailbox implements DataTypes.MessageListener
     }
     
     @Override
-    public void newMessageArrived() 
-    {
-        do {
-            Letter letter = inbox.MessageQueue.poll();
-            if (letter == null) {
-                break;
-            }
-            
-            MessageType msgType = letter.getMessageType();
-            switch(msgType)
-            {
-                case Message_Individual:
-                    if (isServer) {
-                        forward(letter);
-                        //add sender to active list
-                        addressBook.add(letter.getSender());
-                    }
-                    else
-                    {
-                        stackLetter(letter);
-                    }
-                    break;
-                case Message_Broadcast:
-                    if (isServer) {
-                        if (isServer) broadcast(letter);
-                        //add sender to active list
-                        addressBook.add(letter.getSender());
-                    }
-                    else
-                    {
-                        stackLetter(letter);
-                    }
-                    break;
-                case Message_Delivery_Successful:
-                    break;
-                case Message_Delivery_Failed:
-                    stackLetter(letter);
-                    break;
-                case User_Update:
-                    break;
-                case User_Login:
-                    if (isServer) addressBook.add(letter.getSender());
-                    System.out.println("User logged in: " + letter.getSender().getName() + "\t" + letter.getMessage().getDate());
-                    break;
-                case User_Logout:
-                    if (isServer) addressBook.remove(letter.getSender());
-                    System.out.println("User logged out: " + letter.getSender().getName() + "\t" + letter.getMessage().getDate());
-                    break;
-            }
-        } while (true);
-    }
+    public abstract void newMessageArrived();
     
     private final List<DataTypes.MessageListener> listeners;
 

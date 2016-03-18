@@ -10,6 +10,7 @@ import DataContract.DataTypes;
 import WalkieChatieLibrary.Mailbox;
 import DataContract.Contact;
 import DataContract.Letter;
+import WalkieChatieLibrary.MailboxClient;
 
 /**
  *
@@ -17,7 +18,7 @@ import DataContract.Letter;
  */
 public class WalkieChatie implements DataTypes.MessageListener
 {
-    private Mailbox _mailbox;
+    private MailboxClient _mailbox;
     public static final String USER_NAME = "User 1";
 
     public WalkieChatie() {
@@ -25,7 +26,7 @@ public class WalkieChatie implements DataTypes.MessageListener
 
     public void test() {
         //mailbox setup
-        _mailbox = new Mailbox(new Contact(USER_NAME, Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP+10)); 
+        _mailbox = new MailboxClient(new Contact(USER_NAME, Config.SERVER_ADDRESS, 0)); 
         _mailbox.addNewMessageListener(this);
         _mailbox.start();
         
