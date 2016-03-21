@@ -9,11 +9,8 @@
  */
 package WalkieChatieLibrary;
 
-import DataContract.Contact;
-import DataContract.DataTypes;
 import static DataContract.DataTypes.MessageType.Message_Delivery_Successful;
 import DataContract.Letter;
-import DataContract.Message;
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
 import java.io.ByteArrayInputStream;

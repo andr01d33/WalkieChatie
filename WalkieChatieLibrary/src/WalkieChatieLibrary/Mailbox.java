@@ -10,11 +10,9 @@ import DataContract.DataTypes;
 import DataContract.Letter;
 import DataContract.Message;
 import DataContract.Contact;
-import DataContract.DataTypes.MessageType;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 
 /**

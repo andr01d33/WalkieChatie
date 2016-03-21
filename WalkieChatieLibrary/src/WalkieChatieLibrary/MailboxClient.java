@@ -43,7 +43,9 @@ public class MailboxClient extends Mailbox{
                 new Message(msg)
         );
         
-        return outbox.send(letter);
+        outbox.sendAsync(letter);
+        //return outbox.sendletter);
+        return true;
     }
     
     public void sendAll(String msg)
@@ -55,7 +57,7 @@ public class MailboxClient extends Mailbox{
                 new Message(msg)
         );
         
-        outbox.send(letter);
+        outbox.sendAsync(letter);
     }
     
     @Override

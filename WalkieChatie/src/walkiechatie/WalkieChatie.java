@@ -34,11 +34,16 @@ public class WalkieChatie implements DataTypes.MessageListener
         _mailbox.login();
         //to a user
         _mailbox.send(USER_NAME, "This is a private message");
+        
+        //to a user async
+        _mailbox.send(USER_NAME, "This is a private message async");
+        
         //to all
         _mailbox.sendAll("This is a broadcasting message");
         //to someone offline
-        _mailbox.send("Ted", "Test sending message to offline user.");
-        _mailbox.logout();     
+        //_mailbox.send("Ted", "Test sending message to offline user.");
+        
+        //_mailbox.logout();     
         
     }
 

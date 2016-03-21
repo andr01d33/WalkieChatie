@@ -96,13 +96,28 @@ public class MailboxServer extends Mailbox{
                     break;
                 case User_Login:
                     addressBook.add(letter.getSender());
-                    System.out.println("User logged in: " + letter.getSender().getName() + "\t" + letter.getMessage().getDate());
+                    //System.out.println("User logged in: " + letter.getSender().getName() + "\t" + letter.getMessage().getDate());
+                    readLetter(letter);
                     break;
                 case User_Logout:
                     addressBook.remove(letter.getSender());
-                    System.out.println("User logged out: " + letter.getSender().getName() + "\t" + letter.getMessage().getDate());
+                    //System.out.println("User logged out: " + letter.getSender().getName() + "\t" + letter.getMessage().getDate());
+                    readLetter(letter);
                     break;
             }
         } while (true);
+    }
+    
+    private void readLetter(Letter letter)
+    {
+        Contact sender = letter.getSender();
+        Contact recipient = letter.getRecipient();
+
+        Message msg = letter.getMessage();
+        
+        System.out.println(letter.getMessageType().toString());
+        System.out.println("From: " + sender.getName() + "@" + sender.getAddress() + ":" + sender.getPort() + "\n");
+        System.out.println("To: " + recipient.getName() + "@" + recipient.getAddress() + ":" + recipient.getPort() + "\n");
+        System.out.println("Content: " + msg.getContent() + "\t" + msg.getDate());
     }
 }
