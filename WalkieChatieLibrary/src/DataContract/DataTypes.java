@@ -17,6 +17,11 @@ public abstract class DataTypes {
         void newMessageArrived();
     }
     
+    public interface UserListListener 
+    {
+        void userStatusChanged(String userName, boolean isOnline);
+    }
+    
     public static enum MessageType
     {
         Message_Individual,

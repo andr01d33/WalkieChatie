@@ -5,10 +5,8 @@
  */
 package WalkieChatieLibrary;
 
-import DataContract.Config;
 import DataContract.DataTypes;
 import DataContract.Letter;
-import DataContract.Message;
 import DataContract.Contact;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -24,19 +22,20 @@ public abstract class Mailbox implements DataTypes.MessageListener
     protected final Inbox inbox;
     protected final Outbox outbox;
     public final AddressBook addressBook;
-    public final Contact onwer;
+    public final Contact owner;
+    protected Contact recerver;
     public Queue<Letter> LetterQueue;
     
     public Mailbox(Contact ownerInfo)
     {
-        onwer = ownerInfo;
+        owner = ownerInfo;
         
         addressBook = new AddressBook();
         LetterQueue = new LinkedList<>();
         
         outbox = new Outbox();   
-        inbox = new Inbox(onwer.getPort());    
-        
+        inbox = new Inbox(owner.getPort());    
+        //recerver = new
         this.listeners = new ArrayList<>();
     }
     
@@ -45,18 +44,6 @@ public abstract class Mailbox implements DataTypes.MessageListener
     {
         inbox.addNewMessageListener(this);
         inbox.start();
-    }
-    
-    protected boolean updateClientStatus(DataTypes.MessageType type)
-    {
-        Letter letter = new Letter(
-                type,
-                new Contact(onwer.getName(), Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP),
-                onwer,
-                new Message("N/A")
-        );
-        
-        return outbox.send(letter);
     }
     
     protected synchronized void stackLetter(Letter letter) {

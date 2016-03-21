@@ -5,17 +5,13 @@
  */
 package walkiechatieserver;
 
-import DataContract.Config;
-import DataContract.Contact;
-import DataContract.Letter;
-import WalkieChatieLibrary.*;
-import DataContract.DataTypes.MessageListener;
+import WalkieChatieLibrary.MailboxServer;
 
 /**
  *
  * @author Administrator
  */
-public class WalkieChatieServer implements MessageListener
+public class WalkieChatieServer
 {
     private MailboxServer _mailbox;
 
@@ -23,36 +19,12 @@ public class WalkieChatieServer implements MessageListener
     }
 
     public void startServer() {
-        _mailbox = new MailboxServer(new Contact(Config.SERVER_NAME, Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP));
-        _mailbox.addNewMessageListener(this);
+        _mailbox = new MailboxServer();
         _mailbox.start();
     }
 
     public static void main(String[] args) {
         WalkieChatieServer server = new WalkieChatieServer();
         server.startServer();
-    }
-
-    @Override
-    public void newMessageArrived() {
-        /*
-        do {
-            Letter msg = _mailbox.inbox.MessageQueue.poll();
-            if (msg == null) {
-                break;
-            }
-
-            System.out.println("New Message: " + msg.getMessage().getContent());
-
-            
-            Message msgTest = new Message(
-                    "localhost", 8889, DataContract.MessageType.Message_Individual,
-                    "Reply from Server", "", ""
-            );
-
-            _mailbox.outbox.send(msgTest);
-
-        } while (true);
-*/
     }
 }

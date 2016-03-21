@@ -13,20 +13,20 @@ import DataContract.DataTypes.MessageType;
  */
 public class Letter {
     private MessageType _messageType;
-    private Contact _recipient;
-    private Contact _sender;
-    private Message _message;
+    private String recipient;
+    private String sender;
+    private String message;
     
     public Letter()
     {
         
     }
-    public Letter(DataTypes.MessageType type, Contact recipient, Contact sender, Message msg)
+    public Letter(DataTypes.MessageType type, String recipient, String sender, String msg)
     {
         _messageType = type;
-        _recipient = recipient;
-        _sender = sender;    
-        _message = msg;
+        this.recipient = recipient;
+        this.sender = sender;    
+        message = msg;
     }
     
     public MessageType getMessageType()
@@ -37,28 +37,28 @@ public class Letter {
     {
         _messageType = messageType;    
     }
-    public Contact getSender()
+    public String getSender()
     {
-        return _sender;    
+        return sender;    
     }
-    public void setSender(Contact sender)
+    public void setSender(String sender)
     {
-        _sender = sender;    
+        this.sender = sender;    
     }
-    public Contact getRecipient()
+    public String getRecipient()
     {
-        return _recipient;    
+        return recipient;    
     }
-    public void setRecipient(Contact recipient)
+    public void setRecipient(String recipient)
     {
-        _recipient = recipient;    
+        this.recipient = recipient;    
     }
-    public Message getMessage()
+    public String getMessage()
     {
-        return _message;    
+        return message;    
     }
-    public void setMessage(Message message)
+    public void setMessage(String message)
     {
-        _message = message;    
+        this.message = message;    
     }
 }

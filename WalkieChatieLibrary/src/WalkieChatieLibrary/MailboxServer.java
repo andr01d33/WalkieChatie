@@ -5,27 +5,46 @@
  */
 package WalkieChatieLibrary;
 
+import DataContract.Config;
 import DataContract.Contact;
 import DataContract.DataTypes;
 import DataContract.Letter;
-import DataContract.Message;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Map;
+import javax.swing.Timer;
 
 /**
  *
  * @author Andy
  */
 public class MailboxServer extends Mailbox{
+    private Timer timer;
     
-    public MailboxServer(Contact ownerInfo) {
-        super(ownerInfo);
+    public MailboxServer() {
+        super(new Contact(Config.SERVER_NAME, Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP, 0, true));
+        
+        // set timer to update client list
+        timer = new Timer(Config.UDP_INTERVAL, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                broadcastClients();
+            }
+        });
+        timer.start();
     }
     
     //server to client
-    public boolean forward(Letter letter)
+    private boolean forward(Letter letter)
     {
         //look up real ip address and port for recipient
-        String name = letter.getRecipient().getName();
+        String name = letter.getRecipient();
         
         Contact recipient = addressBook.Lookup(name);
         if (recipient == null)
@@ -34,8 +53,8 @@ public class MailboxServer extends Mailbox{
             return false;
         }
         
-        letter.setRecipient(recipient);
-        if (!outbox.send(letter))
+        letter.setRecipient(recipient.getName());
+        if (!outbox.send(recipient, letter))
         {
             returnLetter(letter);
             return false;
@@ -44,26 +63,32 @@ public class MailboxServer extends Mailbox{
         return true;
     }
     
-    public void returnLetter(Letter letter)
+    private void returnLetter(Letter letter)
     {
         //look up real ip address and port for recipient
-        String name = letter.getRecipient().getName();
+        String name = letter.getRecipient();
         
-        String msg = "Failed to send \"" + letter.getMessage().getContent() + "\", " +
+        String msg = "Failed to send \"" + letter.getMessage() + "\", " +
                 name + " is offline or is invisible.";
         
         letter.setMessageType(DataTypes.MessageType.Message_Delivery_Failed);
-        letter.setMessage(new Message(msg));
+        letter.setMessage(msg);
         letter.setRecipient(letter.getSender());
         
-        outbox.send(letter);
+        Contact recipient = addressBook.Lookup(letter.getSender());
+        if (recipient != null)
+        {
+            outbox.send(recipient, letter);
+        }  
     }
 
-    public void broadcast(Letter letter)
+    private synchronized void broadcast(Letter letter)
     {
         for (Map.Entry<String, Contact> entry : addressBook.map.entrySet()) {
-            letter.setRecipient(entry.getValue());
-            outbox.send(letter);
+            if (!entry.getValue().getIsOnline()) continue;
+            
+            letter.setRecipient(entry.getValue().getName());
+            outbox.send(entry.getValue(), letter);
         }    
     }
     
@@ -80,13 +105,9 @@ public class MailboxServer extends Mailbox{
             switch (msgType) {
                 case Message_Individual:
                     forward(letter);
-                    //add sender to active list
-                    addressBook.add(letter.getSender());
                     break;
                 case Message_Broadcast:
                     broadcast(letter);
-                    //add sender to active list
-                    addressBook.add(letter.getSender());
                     break;
                 case Message_Delivery_Successful:
                     break;
@@ -95,14 +116,23 @@ public class MailboxServer extends Mailbox{
                 case User_Update:
                     break;
                 case User_Login:
-                    addressBook.add(letter.getSender());
-                    //System.out.println("User logged in: " + letter.getSender().getName() + "\t" + letter.getMessage().getDate());
-                    readLetter(letter);
+                    String []ports = letter.getMessage().split(":");
+                    if (ports.length == 3) {
+                        Contact sender = new Contact(letter.getSender(), ports[0], Integer.parseInt(ports[1]), Integer.parseInt(ports[2]), true);
+                        addressBook.add(sender);
+                        
+                        readLetter(letter);
+                    }
                     break;
                 case User_Logout:
-                    addressBook.remove(letter.getSender());
-                    //System.out.println("User logged out: " + letter.getSender().getName() + "\t" + letter.getMessage().getDate());
                     readLetter(letter);
+                    addressBook.updateStatus(letter.getSender(), false);
+                    
+                    //inform others
+                    timer.stop();
+                    broadcastClients();
+                    timer.restart();
+                    
                     break;
             }
         } while (true);
@@ -110,14 +140,62 @@ public class MailboxServer extends Mailbox{
     
     private void readLetter(Letter letter)
     {
-        Contact sender = letter.getSender();
-        Contact recipient = letter.getRecipient();
-
-        Message msg = letter.getMessage();
+        Contact sender = addressBook.Lookup(letter.getSender());
+        if (sender == null)
+        {
+            System.out.println("Unknown Message: " + letter.getMessage() );
+            return;
+        }
         
-        System.out.println(letter.getMessageType().toString());
-        System.out.println("From: " + sender.getName() + "@" + sender.getAddress() + ":" + sender.getPort() + "\n");
-        System.out.println("To: " + recipient.getName() + "@" + recipient.getAddress() + ":" + recipient.getPort() + "\n");
-        System.out.println("Content: " + msg.getContent() + "\t" + msg.getDate());
+        
+        Contact recipient = addressBook.Lookup(letter.getRecipient());
+        if (recipient == null) recipient = owner;
+
+        String msg = letter.getMessage();
+        StringBuilder log = new StringBuilder();
+        log.append(letter.getMessageType().toString() + ": ");
+        log.append(sender.getName() + "@" + sender.getAddress() + ":" + sender.getPort());
+        log.append(" --> " + recipient.getName() + "@" + recipient.getAddress() + ":" + recipient.getPort());
+        log.append(" Content: " + msg);
+        
+        System.out.println(log.toString());
+    }
+    
+    private synchronized void broadcastClients()
+    {
+        String msg;
+        for (Map.Entry<String, Contact> you : addressBook.map.entrySet()) {
+            if (!you.getValue().getIsOnline()) continue;
+            
+            for (Map.Entry<String, Contact> other : addressBook.map.entrySet()) {
+                if (you.getValue().getName().equals(other.getValue().getName())) continue;
+                
+                msg = other.getValue().getIsOnline()? "1:":"0:";
+                msg += other.getValue().getName();
+                sendUDP(you.getValue(), msg);
+            }
+        } 
+    }
+    
+    private void sendUDP(Contact receiver, String msg)
+    {
+        DatagramSocket socket = null;
+        InetAddress hostAddress = null;
+        
+        try {
+            socket = new DatagramSocket();
+            byte[] data = msg.getBytes();
+            hostAddress = InetAddress.getByName(receiver.getAddress());
+            
+            DatagramPacket sendDatagram = new DatagramPacket(data,
+                    data.length, hostAddress, receiver.getPortUdp());
+            socket.send(sendDatagram);
+        } catch (SocketException e) {
+            System.err.println("Unable to create socket: " + e);
+        }catch (UnknownHostException e) {
+            System.err.println("Unknown host: " + e);
+        } catch (IOException e) {
+            System.err.println("IOException: " + e);
+        }
     }
 }

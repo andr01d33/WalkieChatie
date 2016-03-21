@@ -14,4 +14,7 @@ public abstract class Config {
     public static final String SERVER_ADDRESS = "localhost";
     public static final int SERVER_PORT_TCP = 8888;
     public static final int SERVER_PORT_UDP = 8899;
+    public static final int PORT_TCP_TIMEOUT = 3000;
+    public static final int PORT_UDP_TIMEOUT = 3000;
+    public static final int UDP_INTERVAL = 3000;
 }

@@ -5,43 +5,71 @@
  */
 package DataContract;
 
+import java.util.Date;
+
 /**
  *XML User data
  * @author AndyChen
  */
 public class Contact {
     public Contact(){}
-    public Contact(String name, String address, int port)
+    public Contact(String name, String address, int port, int portUdp, boolean isOnline)
     {
-        _name = name;
-        _address = address;
-        _port = port;
+        this.name = name;
+        this.address = address;
+        this.port = port;
+        this.portUdp = portUdp;
+        this.isOnline = isOnline;
+        
+        lastAtiveTime = new Date();
     }
-    private String _name;
+    public Date lastAtiveTime;
+    
+    private String name;
     public String getName()
     {
-        return _name;
+        return name;
     }
     public void setName(String name)
     {
-        _name  = name;
+        this.name  = name;
     }
-    private String _address;
+    private String address;
     public String getAddress()
     {
-        return _address;
+        return address;
     }
     public void setAddress(String address)
     {
-        _address  = address;
+        this.address  = address;
     }
-    private int _port;
+    private int port;
     public int getPort()
     {
-        return _port;
+        return port;
     }
     public void setPort(int port)
     {
-        _port  = port;
+        this.port  = port;
+    }
+    
+    private int portUdp;
+    public int getPortUdp()
+    {
+        return portUdp;
+    }
+    public void setPortUdp(int port)
+    {
+        portUdp  = port;
+    }
+    
+    private boolean isOnline;
+    public boolean getIsOnline()
+    {
+        return isOnline;
+    }
+    public void setIsOnline(boolean online)
+    {
+        isOnline  = online;
     }
 }

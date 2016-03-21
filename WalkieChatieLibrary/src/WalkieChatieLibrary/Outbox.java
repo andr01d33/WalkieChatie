@@ -9,6 +9,7 @@
  */
 package WalkieChatieLibrary;
 
+import DataContract.Contact;
 import static DataContract.DataTypes.MessageType.Message_Delivery_Successful;
 import DataContract.Letter;
 import java.beans.XMLDecoder;
@@ -27,14 +28,14 @@ public class Outbox
     {
     }
     
-    public boolean send(Letter msg)
+    public boolean send(Contact receiver, Letter msg)
     {
         Socket socket = null;
         Letter replyMsg = null;
         boolean msgSent = false;
         
         try {
-            socket = new Socket(msg.getRecipient().getAddress(), msg.getRecipient().getPort());
+            socket = new Socket(receiver.getAddress(), receiver.getPort());
             
             //send letter
             OutputStream memStream = new ByteArrayOutputStream();
@@ -72,23 +73,25 @@ public class Outbox
         return msgSent;
     }
     
-    public void sendAsync(Letter msg)
+    public void sendAsync(Contact receiver, Letter msg)
     {
-        NewLetter letter = new NewLetter(msg);
+        NewLetter letter = new NewLetter(receiver, msg);
         Thread thread = new Thread(letter);
         thread.start();
     }
     
     private class NewLetter implements Runnable {
 
-        private Letter letter;
-        public NewLetter(Letter msg) {
+        private final Letter letter;
+        private final Contact receiver;
+        public NewLetter(Contact rec, Letter msg) {
             this.letter = msg;
+            this.receiver = rec;
         }
 
         @Override
         public void run() {
-            send(letter);
+            send(receiver, letter);
         }
     }
 }

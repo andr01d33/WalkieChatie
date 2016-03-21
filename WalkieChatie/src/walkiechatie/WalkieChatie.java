@@ -5,53 +5,40 @@
  */
 package walkiechatie;
 
-import DataContract.Config;
-import DataContract.DataTypes;
-import WalkieChatieLibrary.Mailbox;
 import DataContract.Contact;
+import DataContract.DataTypes;
 import DataContract.Letter;
 import WalkieChatieLibrary.MailboxClient;
+import java.util.Map;
+import java.util.Random;
+
 
 /**
  *
  * @author Administrator
  */
-public class WalkieChatie implements DataTypes.MessageListener
+public class WalkieChatie implements DataTypes.MessageListener, DataTypes.UserListListener
 {
     private MailboxClient _mailbox;
-    public static final String USER_NAME = "User 1";
+    private String USER_NAME = "User_";
 
     public WalkieChatie() {
     }
 
-    public void test() {
-        //mailbox setup
-        _mailbox = new MailboxClient(new Contact(USER_NAME, Config.SERVER_ADDRESS, 0)); 
-        _mailbox.addNewMessageListener(this);
-        _mailbox.start();
-        
-        //mailbox test
-        _mailbox.login();
-        //to a user
-        _mailbox.send(USER_NAME, "This is a private message");
-        
-        //to a user async
-        _mailbox.send(USER_NAME, "This is a private message async");
-        
-        //to all
-        _mailbox.sendAll("This is a broadcasting message");
-        //to someone offline
-        //_mailbox.send("Ted", "Test sending message to offline user.");
-        
-        //_mailbox.logout();     
-        
-    }
-
     public static void main(String[] args) {
         WalkieChatie client = new WalkieChatie();
-        client.test();
+        client.test(); 
     }
-
+    
+    private void setup()
+    {
+        //mailbox setup
+        _mailbox = new MailboxClient(USER_NAME); 
+        _mailbox.addNewMessageListener(this);
+        _mailbox.addressBook.addUserListListener(this);
+        _mailbox.start();
+    }
+    
     @Override
     public void newMessageArrived() {
         do {
@@ -61,6 +48,45 @@ public class WalkieChatie implements DataTypes.MessageListener
             }
             showMessage(letter);
         } while (true);
+    }
+    
+    //todo: connect these methods to GUI
+    public void test() {
+        //mailbox test
+        Random rand = new Random();
+        int n = rand.nextInt(5000) + 1;
+        USER_NAME += Integer.toString(n);
+        
+        setup();
+        
+        _mailbox.login();
+        //to a user
+        _mailbox.send(USER_NAME, "This is a private message");  
+        //to all
+        _mailbox.sendAll("This is a broadcasting message");
+        //to someone offline
+        _mailbox.send("Ted", "Test sending message to offline user.");
+        
+        n = rand.nextInt(20) + 3;
+        try {
+            Thread.sleep(n*1000);
+        } catch (InterruptedException ex) {}
+        
+        //print out user list
+        System.out.println("Current Users: (including offline users)");
+        for (Map.Entry<String, Contact> entry : _mailbox.addressBook.map.entrySet()) {
+            String userName = entry.getValue().getName();
+            boolean isOnline = entry.getValue().getIsOnline();
+            System.out.println("User: " + userName + " -> " + (isOnline? "online." : "offline."));
+        }
+        
+        _mailbox.logout();          
+    }
+
+    //todo: implementation of methods userStatusChanged, and showMessage with GUI
+    @Override
+    public void userStatusChanged(String userName, boolean isOnline) {
+        System.out.println("User: " + userName + " is now " + (isOnline? "online." : "offline."));
     }
     
     public void showMessage(Letter letter)
@@ -80,7 +106,7 @@ public class WalkieChatie implements DataTypes.MessageListener
                 type += "server replyed";
                 break;
         }
-        String msg = letter.getSender().getName() + type + "\t" + letter.getMessage().getDate() + "\n" + letter.getMessage().getContent();
+        String msg = letter.getSender() + type + "\t" + letter.getMessage();
         System.out.println(msg);
     }
 }

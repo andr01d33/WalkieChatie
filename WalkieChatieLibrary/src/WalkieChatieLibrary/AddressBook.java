@@ -6,7 +6,10 @@
 package WalkieChatieLibrary;
 
 import DataContract.Contact;
+import DataContract.DataTypes;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,7 +22,7 @@ public class AddressBook {
     public AddressBook()
     {
         map = new HashMap<>();
-        
+        this.listeners = new ArrayList<>();
     }
     
     public Contact Lookup(String userName)
@@ -27,24 +30,55 @@ public class AddressBook {
         return map.get(userName);
     }
     
-    public boolean add(Contact contact)
+    public Contact add(Contact contact)
     {
-        if      (contact == null || 
-                contact.getName() == null || contact.getName().isEmpty() ||
-                contact.getAddress() == null || contact.getAddress().isEmpty() ||
-                contact.getPort() <= 0)
-            return false;
+        if (contact == null || contact.getName() == null)
+            return null;
         
-        map.put(contact.getName(), contact);
-        return true;
+        return map.put(contact.getName(), contact);
     }
-    public boolean remove(Contact contact)
+    private boolean remove(Contact contact)
     {
-        return map.remove(contact.getName())!=null? true : false;
+        return map.remove(contact.getName())!=null;
     }
     
-    public boolean remove(String userName)
+    private boolean remove(String userName)
     {
-        return map.remove(userName)!=null? true : false;
+        return map.remove(userName)!=null;
+    }
+    
+    public boolean updateStatus(String userName, boolean isOnline)
+    {
+        Contact user = Lookup(userName);
+        if (user == null)
+        {// new user
+            add(new Contact(userName, "", 0, 0, isOnline));
+            
+            raiseUserStatusChangeEvent(userName, isOnline);
+        }
+        else
+        {// old user
+            boolean orgStatus = user.getIsOnline();
+
+            if (orgStatus != isOnline) {
+                user.setIsOnline(isOnline);
+                raiseUserStatusChangeEvent(userName, isOnline);
+            }
+        }
+        
+        return null != user;
+    }
+    
+    private final List<DataTypes.UserListListener> listeners;
+
+    public void addUserListListener(DataTypes.UserListListener listener) {
+        listeners.add(listener);
+    }
+    
+    private void raiseUserStatusChangeEvent(String userName, boolean isOnline)
+    {
+        for (DataTypes.UserListListener item : listeners) {
+            item.userStatusChanged(userName, isOnline);
+        }
     }
 }

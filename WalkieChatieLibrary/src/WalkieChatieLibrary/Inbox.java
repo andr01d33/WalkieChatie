@@ -9,11 +9,10 @@
  */
 package WalkieChatieLibrary;
 
-import DataContract.Message;
-import DataContract.Contact;
-import DataContract.DataTypes;
+import DataContract.Config;
 import DataContract.Letter;
 import DataContract.DataTypes.MessageListener;
+import DataContract.DataTypes.MessageType;
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
 import java.io.ByteArrayInputStream;
@@ -47,7 +46,7 @@ public class Inbox extends Thread
         
         try {
             serverSocket = new ServerSocket(Port);
-            serverSocket.setSoTimeout(3000);
+            serverSocket.setSoTimeout(Config.PORT_TCP_TIMEOUT);
             Port = serverSocket.getLocalPort();
         } catch (IOException ex) {
             Logger.getLogger(Inbox.class.getName()).log(Level.SEVERE, null, ex);
@@ -113,10 +112,10 @@ public class Inbox extends Thread
             this.socket = socket;
             
             acknowledgeMessage = new Letter(
-                    DataTypes.MessageType.Message_Delivery_Successful,
-                    new Contact(),
-                    new Contact(),
-                    new Message("OK")
+                    MessageType.Message_Delivery_Successful,
+                    "",
+                    "",
+                    "OK"
             );
         }
 
@@ -139,12 +138,14 @@ public class Inbox extends Thread
                 oos.writeObject(xmlStringReplay);
                 oos.flush();
                 
-                Contact sender = new Contact(
-                        letter.getSender().getName(), 
-                        socket.getInetAddress().toString().replace("/", ""),
-                        letter.getSender().getPort());
-                
-                letter.setSender(sender);
+                if (letter.getMessageType() == MessageType.User_Login || letter.getMessageType() == MessageType.User_Logout)
+                {
+                    //append client's information to message.
+                    String senderInfo = socket.getInetAddress().toString().replace("/", "") + ":";
+                    senderInfo += letter.getMessage();
+                    letter.setMessage(senderInfo);
+                }
+
                 stackMessage(letter);
             } catch (Exception e) {
                 System.err.println("Server error: " + e);
