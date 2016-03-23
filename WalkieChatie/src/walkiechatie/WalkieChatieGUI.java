@@ -15,10 +15,7 @@ import javax.swing.text.*;
 import javax.swing.text.html.*;
 import javax.swing.*;
 
-/**
- *
- * @blame AD
- */
+
 public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.MessageListener, DataTypes.UserListListener {
 
   private MailboxClient mailbox = null;
@@ -45,6 +42,7 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
     String html = new String(); 
     html  = "<p style=\"margin: 5px 0px\"><b>WalkieChatie 1.0</b></p>";
     html += "<p style=\"margin: 5px 0px\"><b>Enter your name into the top-left field and click Connect.</b></p>";
+    html += "<p style=\"margin: 5px 0px\"><b>Select a user's name in the list to send them a private messge.</b></p>";
     html += "<p style=\"margin: 0px\">&nbsp;</p>";
     chatTextPane.setText(html);    
 
