@@ -17,7 +17,7 @@ import javax.swing.*;
 
 /**
  *
- * @blame A. Drawneek; ID# 16929319; mjy3130@autuni.ac.nz
+ * @blame AD
  */
 public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.MessageListener, DataTypes.UserListListener {
 
