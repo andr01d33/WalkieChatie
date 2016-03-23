@@ -48,3 +48,6 @@ Temporary Items
 /WalkieChatieServer/build/
 /WalkieChatieLibrary/build/
 /WalkieChatie/build/
+/WalkieChatieLibrary/dist/
+/WalkieChatieServer/dist/
+/WalkieChatie/dist/
