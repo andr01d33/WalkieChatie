@@ -319,13 +319,32 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
     // NOTE: not complete, MailboxClient should take server (and port?) values for Contact class...
     
     String user = userTextField.getText();
+    String serverAddr = serverTextField.getText();
+    int serverPort = Integer.parseInt(portTextField.getText());
     
-    mailbox = new MailboxClient(user); 
+    mailbox = new MailboxClient(user, serverAddr, serverPort); 
     mailbox.addNewMessageListener(this);
     mailbox.addressBook.addUserListListener(this);
-    mailbox.start(); 
     
-    if (mailbox.login()) {
+    
+    
+    Letter returnLetter = mailbox.login();
+    if (returnLetter == null)
+    {
+        connected = false;
+        Letter infoLetter = new Letter(
+                DataTypes.MessageType.Message_Delivery_Failed,
+                user, Config.SERVER_NAME,
+                "Connection failed, please check your server address settings.");
+        showMessage(infoLetter);
+    }
+    else if (returnLetter.getMessageType() != DataTypes.MessageType.Message_Delivery_Successful) {
+        //login failed
+        returnLetter.setMessageType(DataTypes.MessageType.Message_Delivery_Failed);
+        showMessage(returnLetter);
+    }
+    else
+    {
       // successful login
       connected = true;
       updateControlStates();
@@ -380,7 +399,6 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
       case Message_Delivery_Failed:
         // error message from the server
         appendLine("<span style=\"text-color:red\">Server: " + msg + "</span>");
-        break;
     }
 
   } // showMessage

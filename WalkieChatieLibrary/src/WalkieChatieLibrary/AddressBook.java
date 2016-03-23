@@ -35,6 +35,8 @@ public class AddressBook {
         if (contact == null || contact.getName() == null)
             return null;
         
+        if (!map.containsValue(contact))raiseUserStatusChangeEvent(contact.getName(), true);
+        
         return map.put(contact.getName(), contact);
     }
     private boolean remove(Contact contact)

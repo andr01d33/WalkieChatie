@@ -22,32 +22,42 @@ import java.util.Arrays;
  */
 public class MailboxClient extends Mailbox {
   
-    public MailboxClient(String userName) {
+    public MailboxClient(String userName, String serverAddr, int serverPort) {
         super(new Contact(userName, Config.SERVER_ADDRESS, 0, 0, true));
         
-        server = new Contact("server", Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP, 0, true);
+        server = new Contact("server", serverAddr, serverPort, 0, true);
     }
     
     public final Contact server;
     private ClientWatcher _clientWatcher;
         //client login
-    public boolean login()
-    {
+    public Letter login()
+    { 
+        //this will get a dynamic port TCP for inbox
+        super.start();
         //set client's port (dynamically assigned by the system)
-        owner.setPort(inbox.Port);
+        owner.setPort(inbox.Port);     
+        //this starts receiving user list, this will get a dynamic UDP port for updating user list
         startClientWatch();
-        return updateClientStatus(DataTypes.MessageType.User_Login);
+        
+        Letter returnLetter = updateClientStatus(DataTypes.MessageType.User_Login);
+        if (returnLetter == null || returnLetter.getMessageType() != DataTypes.MessageType.Message_Delivery_Successful) {
+            //login failed?
+            super.stop();
+            stopClientWatch();
+        }
+        
+        return returnLetter;
     }
     
     public boolean logout()
     {
-//        inbox.stopService();
         super.stop();
         stopClientWatch();
-        return updateClientStatus(DataTypes.MessageType.User_Logout);
+        return updateClientStatus(DataTypes.MessageType.User_Logout) != null;
     }
     
-    protected boolean updateClientStatus(DataTypes.MessageType type)
+    protected Letter updateClientStatus(DataTypes.MessageType type)
     {
         Letter letter = new Letter(
                 type,

@@ -28,11 +28,10 @@ public class Outbox
     {
     }
     
-    public boolean send(Contact receiver, Letter msg)
+    public Letter send(Contact receiver, Letter msg)
     {
         Socket socket = null;
         Letter replyMsg = null;
-        boolean msgSent = false;
         
         try {
             socket = new Socket(receiver.getAddress(), receiver.getPort());
@@ -54,10 +53,6 @@ public class Outbox
             String xmlStringReply = (String) ois.readObject();
             XMLDecoder decoder = new XMLDecoder(new ByteArrayInputStream(xmlStringReply.getBytes()));
             replyMsg = (Letter) decoder.readObject();
-
-            //System.out.println("Auto-reply: " + replyMsg.getMessage().getContent());
-            if(replyMsg.getMessageType() == Message_Delivery_Successful)
-                msgSent = true;
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Client could not make connection: " + e);
         }finally {
@@ -70,7 +65,7 @@ public class Outbox
               }
           }
         
-        return msgSent;
+        return replyMsg;
     }
     
     public void sendAsync(Contact receiver, Letter msg)

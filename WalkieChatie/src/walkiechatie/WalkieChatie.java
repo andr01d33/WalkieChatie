@@ -5,6 +5,7 @@
  */
 package walkiechatie;
 
+import DataContract.Config;
 import DataContract.Contact;
 import DataContract.DataTypes;
 import DataContract.Letter;
@@ -33,7 +34,7 @@ public class WalkieChatie implements DataTypes.MessageListener, DataTypes.UserLi
     private void setup()
     {
         //mailbox setup
-        _mailbox = new MailboxClient(USER_NAME); 
+        _mailbox = new MailboxClient(USER_NAME, Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP); 
         _mailbox.addNewMessageListener(this);
         _mailbox.addressBook.addUserListListener(this);
         _mailbox.start();
