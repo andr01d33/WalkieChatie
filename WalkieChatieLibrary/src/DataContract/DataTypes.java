@@ -30,6 +30,11 @@ public abstract class DataTypes {
         Message_Delivery_Failed,
         User_Update,
         User_Login,
-        User_Logout;
+        User_Logout,
+        User_Name_Invalid,
+        Server_Started,
+        Server_Failed,
+        Server_Stopped,
+        ;
     };
 }

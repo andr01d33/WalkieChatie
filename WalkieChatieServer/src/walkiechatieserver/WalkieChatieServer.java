@@ -5,6 +5,7 @@
  */
 package walkiechatieserver;
 
+import DataContract.Config;
 import WalkieChatieLibrary.MailboxServer;
 
 /**
@@ -19,7 +20,7 @@ public class WalkieChatieServer
     }
 
     public void startServer() {
-        _mailbox = new MailboxServer();
+        _mailbox = new MailboxServer(Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP);
         _mailbox.start();
     }
 

@@ -34,7 +34,7 @@ public abstract class Mailbox implements DataTypes.MessageListener
         LetterQueue = new LinkedList<>();
         
         outbox = new Outbox();   
-        inbox = new Inbox(owner.getPort());    
+        inbox = new Inbox(owner, addressBook);    
 
         this.listeners = new ArrayList<>();
     }

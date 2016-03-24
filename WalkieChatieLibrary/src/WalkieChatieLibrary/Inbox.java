@@ -10,6 +10,7 @@
 package WalkieChatieLibrary;
 
 import DataContract.Config;
+import DataContract.Contact;
 import DataContract.Letter;
 import DataContract.DataTypes.MessageListener;
 import DataContract.DataTypes.MessageType;
@@ -38,19 +39,39 @@ public class Inbox extends Thread
     public Queue<Letter> MessageQueue;
     private ServerSocket serverSocket;
     public int Port;
+    private AddressBook addressBook;
+    public final Contact owner;
 
-    public Inbox(int listeningPort) {
+    public Inbox(Contact ownerInfo, AddressBook addrBook) {
         this.listeners = new ArrayList<>();
-        this.Port = listeningPort;
+        this.owner = ownerInfo;
+        this.Port = owner.getPort();
+        this.addressBook=addrBook;
         MessageQueue = new LinkedList<>();
+        
+        Letter msg = new Letter(
+                MessageType.Server_Started,
+                Config.SERVER_NAME,
+                Config.SERVER_NAME,
+                ""
+        );
         
         try {
             serverSocket = new ServerSocket(Port);
             serverSocket.setSoTimeout(Config.PORT_TCP_TIMEOUT);
             Port = serverSocket.getLocalPort();
+            owner.setPort(Port);
+            
+            address = serverSocket.getInetAddress().toString();
+            msg.setMessage(address);
         } catch (IOException ex) {
+            msg.setMessageType(MessageType.Server_Failed);
+            msg.setMessage(ex.getMessage());
             Logger.getLogger(Inbox.class.getName()).log(Level.SEVERE, null, ex);
         }   
+        
+        //to report inbox status
+        stackMessage(msg);
     }
     
     public void stopService()
@@ -62,7 +83,6 @@ public class Inbox extends Thread
     @Override
     public void run() {
         try {
-            address = serverSocket.getLocalSocketAddress().toString();
             System.out.println("Inbox started: " + address);
             
             while (_keepRunning) {
@@ -79,6 +99,14 @@ public class Inbox extends Thread
                 }   
             }
             
+            Letter msg = new Letter(
+                    MessageType.Server_Stopped,
+                    Config.SERVER_NAME,
+                    Config.SERVER_NAME,
+                    address
+            );
+            //to report inbox status
+            stackMessage(msg);
             System.out.println("Inbox closed: " + address);
         } catch (Exception e) {
             System.err.println("Server error: " + e);
@@ -91,43 +119,76 @@ public class Inbox extends Thread
         {
             MessageQueue.add(msgData);
             
-            for (MessageListener item : listeners) {
+            raiseEvent();
+        }
+    }
+    
+    private void raiseEvent()
+    {
+        for (MessageListener item : listeners) {
                 item.newMessageArrived();
             }
-        }
     }
     
     private final List<MessageListener> listeners;
 
     public void addNewMessageListener(MessageListener listener) {
         listeners.add(listener);
+        
+        if (MessageQueue.peek() != null)
+        {
+            raiseEvent();
+        }
     }
     
     private class NewDelivery implements Runnable {
 
         private final Socket socket;
-        private final Letter acknowledgeMessage;
 
         public NewDelivery(Socket socket) {
             this.socket = socket;
-            
-            acknowledgeMessage = new Letter(
-                    MessageType.Message_Delivery_Successful,
-                    "",
-                    "",
-                    "OK"
-            );
         }
 
         @Override
         public void run() {
             try {
+                boolean invalidMsg = false;
                 //Receive letter
                 ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
                 String xmlString = (String) ois.readObject();
                 XMLDecoder decoder = new XMLDecoder(new ByteArrayInputStream(xmlString.getBytes()));
                 Letter letter = (Letter) decoder.readObject();
 
+                //process message
+                MessageType type = MessageType.Message_Delivery_Successful;
+                String replyMsg = "OK";
+                if (letter.getMessageType() == MessageType.User_Login || letter.getMessageType() == MessageType.User_Logout)
+                {
+                    //append client's information to message.
+                    String senderInfo = socket.getInetAddress().toString().replace("/", "") + ":";
+                    senderInfo += letter.getMessage();
+                    letter.setMessage(senderInfo);
+                }
+
+                if (letter.getMessageType() == MessageType.User_Login && addressBook != null) {
+                    //Send fail login message.
+                    Contact user = addressBook.Lookup(letter.getSender());
+                    boolean isValidUserName = user == null || !user.getIsOnline();
+                    
+                    if(!isValidUserName){
+                        type = MessageType.User_Name_Invalid;
+                        replyMsg = "User name \"" + letter.getSender() + "\" is already taken. Please change your name and try again.";
+                        invalidMsg = true;
+                    }
+                }
+                
+                Letter acknowledgeMessage = new Letter(
+                        type,
+                        letter.getSender(),
+                        owner.getName(),
+                        replyMsg
+                );
+                
                 //send respond
                 OutputStream memStream = new ByteArrayOutputStream();
                 try (XMLEncoder encoder = new XMLEncoder(memStream)) {
@@ -138,15 +199,7 @@ public class Inbox extends Thread
                 oos.writeObject(xmlStringReplay);
                 oos.flush();
                 
-                if (letter.getMessageType() == MessageType.User_Login || letter.getMessageType() == MessageType.User_Logout)
-                {
-                    //append client's information to message.
-                    String senderInfo = socket.getInetAddress().toString().replace("/", "") + ":";
-                    senderInfo += letter.getMessage();
-                    letter.setMessage(senderInfo);
-                }
-
-                stackMessage(letter);
+                if (!invalidMsg) stackMessage(letter);
             } catch (Exception e) {
                 System.err.println("Server error: " + e);
             } finally {

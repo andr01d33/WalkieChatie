@@ -22,13 +22,13 @@ import javax.swing.Timer;
 
 /**
  *
- * @author Andy
+ * @author AndyChen
  */
 public class MailboxServer extends Mailbox{
     private Timer timer;
     
-    public MailboxServer() {
-        super(new Contact(Config.SERVER_NAME, Config.SERVER_ADDRESS, Config.SERVER_PORT_TCP, 0, true));
+    public MailboxServer(String address, int port) {
+        super(new Contact(Config.SERVER_NAME, address, port, 0, true));
         
         // set timer to update client list
         timer = new Timer(Config.UDP_INTERVAL, new ActionListener() {
@@ -59,7 +59,7 @@ public class MailboxServer extends Mailbox{
         }
         
         letter.setRecipient(recipient.getName());
-        if (!outbox.send(recipient, letter))
+        if (outbox.send(recipient, letter) == null)
         {
             returnLetter(letter);
             return false;
@@ -155,6 +155,9 @@ public class MailboxServer extends Mailbox{
                     broadcastClients();
                     timer.restart();
                     
+                    break;
+                default:
+                    stackLetter(letter);
                     break;
             }
         } while (true);
