@@ -21,12 +21,12 @@ public class Letter {
     {
         
     }
-    public Letter(DataTypes.MessageType type, String recipient, String sender, String msg)
+    public Letter(DataTypes.MessageType type, String recipient, String sender, String message)
     {
         _messageType = type;
         this.recipient = recipient;
         this.sender = sender;    
-        message = msg;
+        this.message = message;
     }
     
     public MessageType getMessageType()

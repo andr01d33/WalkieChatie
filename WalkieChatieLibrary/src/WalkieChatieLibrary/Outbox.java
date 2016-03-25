@@ -1,7 +1,6 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Outbox class takes care of opening a TCP socket to the Contact and transmits
+ * the Letter. The socket is closed after the reply Letter is received.
  */
 /**
  *
@@ -31,6 +30,8 @@ public class Outbox
     public Letter send(Contact receiver, Letter msg)
     {
         Socket socket = null;
+        ObjectOutputStream oos = null;
+        ObjectInputStream ois = null;
         Letter replyMsg = null;
         
         try {
@@ -43,27 +44,39 @@ public class Outbox
             }
             String xmlString = memStream.toString();
             
-            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+            oos = new ObjectOutputStream(socket.getOutputStream());
             oos.writeObject(xmlString);
             oos.flush();
             
             //receive reply letter
-            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+            ois = new ObjectInputStream(socket.getInputStream());
 
             String xmlStringReply = (String) ois.readObject();
             XMLDecoder decoder = new XMLDecoder(new ByteArrayInputStream(xmlStringReply.getBytes()));
             replyMsg = (Letter) decoder.readObject();
-        } catch (IOException | ClassNotFoundException e) {
+            
+            
+            memStream.close();
+        } 
+        catch (IOException | ClassNotFoundException e) 
+        {
             System.err.println("Client could not make connection: " + e);
-        }finally {
-              try {
-                  if (socket != null) {
-                      socket.close();
-                  }
-              } catch (IOException e) {
-                  System.err.println("Failed to close streams: " + e);
-              }
-          }
+        }
+        finally 
+        {
+            try {
+                if (socket != null) 
+                    socket.close();
+                if (ois != null)                
+                    ois.close();
+                if (oos != null)
+                    oos.close();
+            } 
+            catch (IOException e) 
+            {
+                System.err.println("Failed to close streams: " + e);
+            }
+        }
         
         return replyMsg;
     }

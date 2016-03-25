@@ -1,7 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Inbox is a Thread subclass which creates a TCP serverSocket and continuously
+ * listens for incoming Letters. Upon reception of a Letter, a new thread is 
+ * spawned (innerclass NewDelivery), which processes the message, returns an 
+ * appropriate response, then closes its socket and finishes. The Inbox 
+ * listening thread should be closed down by the caller/owner when appropriate 
+ * by using the stopService() method or _keepRunning boolean.
  */
 /**
  *
@@ -46,7 +49,7 @@ public class Inbox extends Thread
         this.listeners = new ArrayList<>();
         this.owner = ownerInfo;
         this.Port = owner.getPort();
-        this.addressBook=addrBook;
+        this.addressBook = addrBook;
         MessageQueue = new LinkedList<>();
         
         Letter msg = new Letter(
@@ -70,7 +73,7 @@ public class Inbox extends Thread
             Logger.getLogger(Inbox.class.getName()).log(Level.SEVERE, null, ex);
         }   
         
-        //to report inbox status
+        // to report inbox status
         stackMessage(msg);
     }
     
@@ -86,30 +89,39 @@ public class Inbox extends Thread
             System.out.println("Inbox started: " + address);
             
             while (_keepRunning) {
-                try{
+                try {
+                    // create a new socket when a connection is made; the socket
+                    // is closed by NewDelivery
                     Socket socket = serverSocket.accept();
                     
                     NewDelivery ndelivery = new NewDelivery(socket);
                     Thread thread = new Thread(ndelivery);
                     thread.start();
-                }catch(SocketTimeoutException te){}
-                catch(Exception e){}
-                finally{
+                }
+                catch(SocketTimeoutException e) {
+                }
+                catch(Exception e) {
+                }
+                finally {
                     Thread.yield();
                 }   
             }
             
+            // finished listening, so close server socket
+            serverSocket.close();
+            
+            // report inbox status            
             Letter msg = new Letter(
                     MessageType.Server_Stopped,
                     Config.SERVER_NAME,
                     Config.SERVER_NAME,
                     address
             );
-            //to report inbox status
             stackMessage(msg);
+            
             System.out.println("Inbox closed: " + address);
         } catch (Exception e) {
-            System.err.println("Server error: " + e);
+            System.err.println("Inbox error: " + e);
         }
     }
     
@@ -126,8 +138,8 @@ public class Inbox extends Thread
     private void raiseEvent()
     {
         for (MessageListener item : listeners) {
-                item.newMessageArrived();
-            }
+            item.newMessageArrived();
+        }
     }
     
     private final List<MessageListener> listeners;
@@ -151,10 +163,13 @@ public class Inbox extends Thread
 
         @Override
         public void run() {
+            ObjectInputStream ois = null;
+            ObjectOutputStream oos = null;
+          
             try {
                 boolean invalidMsg = false;
                 //Receive letter
-                ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+                ois = new ObjectInputStream(socket.getInputStream());
                 String xmlString = (String) ois.readObject();
                 XMLDecoder decoder = new XMLDecoder(new ByteArrayInputStream(xmlString.getBytes()));
                 Letter letter = (Letter) decoder.readObject();
@@ -175,7 +190,7 @@ public class Inbox extends Thread
                     Contact user = addressBook.Lookup(letter.getSender());
                     boolean isValidUserName = user == null || !user.getIsOnline();
                     
-                    if(!isValidUserName){
+                    if ( !isValidUserName){
                         type = MessageType.User_Name_Invalid;
                         replyMsg = "User name \"" + letter.getSender() + "\" is already taken. Please change your name and try again.";
                         invalidMsg = true;
@@ -195,7 +210,7 @@ public class Inbox extends Thread
                     encoder.writeObject(acknowledgeMessage);
                 }
                 String xmlStringReplay = memStream.toString();
-                ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+                oos = new ObjectOutputStream(socket.getOutputStream());
                 oos.writeObject(xmlStringReplay);
                 oos.flush();
                 
@@ -204,13 +219,18 @@ public class Inbox extends Thread
                 System.err.println("Server error: " + e);
             } finally {
                 try {
-                    if (socket != null) {
+                    if (ois != null)
+                        ois.close();
+                    if (oos != null)
+                        oos.close();
+                    if (socket != null) 
                         socket.close();
-                    }
                 } catch (IOException e) {
                     System.err.println("Failed to close streams: " + e);
                 }
             }
         }
+        
     }
-}
+    
+} // Inbox

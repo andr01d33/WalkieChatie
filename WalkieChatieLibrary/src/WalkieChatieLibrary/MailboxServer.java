@@ -1,7 +1,11 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * MailboxServer is a subclass of Mailbox designed to be instantiated by the
+ * chat server program. This class takes care of extracting Letters received to
+ * the Inbox, and maintaining the AddressBook of clients who have connected to the
+ * system, passing on Letters to the appropriate clients via the server's Outbox.
+ * In addition, a regularly scheduled timer sends out a list of users on the 
+ * system to all connected clients via UDP - the MailboxClient class listens
+ * for these packets.
  */
 package WalkieChatieLibrary;
 
@@ -17,14 +21,15 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.Map;
+import java.util.*;
 import javax.swing.Timer;
 
 /**
  *
  * @author AndyChen
  */
-public class MailboxServer extends Mailbox{
+public class MailboxServer extends Mailbox {
+  
     private Timer timer;
     
     public MailboxServer(String address, int port) {
@@ -42,10 +47,20 @@ public class MailboxServer extends Mailbox{
     
     public void stop() {
       timer.stop();
+      
+      // disconnect all online clients with a final message, and shut down:
+      Vector<Contact> list = new Vector<Contact>();
+      for (Map.Entry<String, Contact> entry : addressBook.map.entrySet())
+        if (entry.getValue().getIsOnline())
+          list.add(entry.getValue());
+      for (Contact contact : list)
+        outbox.send(contact, new Letter(DataTypes.MessageType.User_Logout, contact.getName(), "Server", "Server stopping."));
+      
+      
       super.stop();
     }
     
-    //server to client
+    // server to client
     private boolean forward(Letter letter)
     {
         //look up real ip address and port for recipient
@@ -81,7 +96,7 @@ public class MailboxServer extends Mailbox{
     
     private void returnLetter(Letter letter)
     {
-        //look up real ip address and port for recipient
+        // look up real ip address and port for recipient
         String name = letter.getRecipient();
         
         String msg = "Failed to send \"" + letter.getMessage() + "\", " +
@@ -135,24 +150,33 @@ public class MailboxServer extends Mailbox{
                 case User_Login:
                     String []ports = letter.getMessage().split(":");
                     if (ports.length == 3) {
-                        Contact sender = new Contact(letter.getSender(), ports[0], Integer.parseInt(ports[1]), Integer.parseInt(ports[2]), true);
+
+                        timer.stop();
+                      
+                        // NOTE: the contact is added to the address book with an offline status at first. 
+                        // updateStatus changes it to true so that the event listeners are called only once.
+                        Contact sender = new Contact(letter.getSender(), ports[0], Integer.parseInt(ports[1]), Integer.parseInt(ports[2]), false);
                         addressBook.add(sender);
+                        addressBook.updateStatus(sender.getName(), true);
                         
                         readLetter(letter);
                         
-                        //inform others
-                        timer.stop();
+                        //inform others                        
                         broadcastClients();
+                        
                         timer.restart();
                     }
                     break;
                 case User_Logout:
+                  
+                    timer.stop();
+                  
                     readLetter(letter);
                     addressBook.updateStatus(letter.getSender(), false);
                     
-                    //inform others
-                    timer.stop();
+                    // inform others
                     broadcastClients();
+                    
                     timer.restart();
                     
                     break;
@@ -168,7 +192,7 @@ public class MailboxServer extends Mailbox{
         Contact sender = addressBook.Lookup(letter.getSender());
         if (sender == null)
         {
-            System.out.println("Unknown Message: " + letter.getMessage() );
+            System.out.println("Unknown Sender: " + letter.getMessage() );
             return;
         }
         
@@ -186,8 +210,9 @@ public class MailboxServer extends Mailbox{
         System.out.println(log.toString());
     }
     
-    private synchronized void broadcastClients()
+    public synchronized void broadcastClients()
     {
+/*      
         String msg;
         for (Map.Entry<String, Contact> you : addressBook.map.entrySet()) {
             if (!you.getValue().getIsOnline()) continue;
@@ -200,6 +225,24 @@ public class MailboxServer extends Mailbox{
                 sendUDP(you.getValue(), msg);
             }
         } 
+*/
+
+      // send the whole userlist & online status in one packet (maximum 64KB).
+      
+      // make comma separated list:
+      String msg = new String();
+      for (Map.Entry<String, Contact> entry : addressBook.map.entrySet()) {
+        if (msg.length() > 0)
+          msg += ";";
+        msg += entry.getValue().getName() + ":";
+        msg += entry.getValue().getIsOnline() ? "1" : "0";
+      }
+      
+      // now send to all connected clients:
+      for (Map.Entry<String, Contact> entry : addressBook.map.entrySet())
+        if (entry.getValue().getIsOnline())
+          sendUDP(entry.getValue(), msg);
+      
     }
     
     private void sendUDP(Contact receiver, String msg)
@@ -215,12 +258,18 @@ public class MailboxServer extends Mailbox{
             DatagramPacket sendDatagram = new DatagramPacket(data,
                     data.length, hostAddress, receiver.getPortUdp());
             socket.send(sendDatagram);
-        } catch (SocketException e) {
+        } 
+        catch (SocketException e) {
             System.err.println("Unable to create socket: " + e);
-        }catch (UnknownHostException e) {
+        } 
+        catch (UnknownHostException e) {
             System.err.println("Unknown host: " + e);
-        } catch (IOException e) {
+        } 
+        catch (IOException e) {
             System.err.println("IOException: " + e);
+        }
+        finally {
+          socket.close();
         }
     }
     

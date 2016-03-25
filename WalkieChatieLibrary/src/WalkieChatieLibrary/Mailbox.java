@@ -1,7 +1,7 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Mailbox abstract class.
+ * Contains Inbox and Outbox classes for 
+ * Subclasses: MailboxClient and MailboxServer.
  */
 package WalkieChatieLibrary;
 
@@ -46,12 +46,19 @@ public abstract class Mailbox implements DataTypes.MessageListener
         inbox.start();
     }
     
-    public void stop() {
+    public void stop() 
+    {
         inbox.stopService();
         addressBook.map.clear();
     }
     
-    protected synchronized void stackLetter(Letter letter) {
+    public void send(Contact contact, Letter letter) 
+    {
+         outbox.sendAsync(contact, letter);
+    }
+    
+    protected synchronized void stackLetter(Letter letter) 
+    {
         if (letter != null) {
             LetterQueue.add(letter);
 
@@ -69,4 +76,6 @@ public abstract class Mailbox implements DataTypes.MessageListener
     public void addNewMessageListener(DataTypes.MessageListener listener) {
         listeners.add(listener);
     }
+    
+
 }

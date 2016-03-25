@@ -17,13 +17,14 @@ import java.util.Map;
  * @author AndyChen
  */
 public class AddressBook {
+  
     public Map<String, Contact> map;
-
+    
     public AddressBook()
     {
         map = new HashMap<>();
         this.listeners = new ArrayList<>();
-    }
+     }
     
     public Contact Lookup(String userName)
     {
@@ -34,19 +35,21 @@ public class AddressBook {
     {
         if (contact == null || contact.getName() == null)
             return null;
-        
-        if (!map.containsValue(contact))raiseUserStatusChangeEvent(contact.getName(), true);
-        
+/*        
+        if (!map.containsValue(contact)) 
+            raiseUserStatusChangeEvent(contact.getName(), true);
+*/  
         return map.put(contact.getName(), contact);
     }
+    
     private boolean remove(Contact contact)
     {
-        return map.remove(contact.getName())!=null;
+        return map.remove(contact.getName()) != null;
     }
     
     private boolean remove(String userName)
     {
-        return map.remove(userName)!=null;
+        return map.remove(userName) != null;
     }
     
     public boolean updateStatus(String userName, boolean isOnline)
@@ -77,10 +80,14 @@ public class AddressBook {
         listeners.add(listener);
     }
     
+    public void removeUserListListener(DataTypes.UserListListener listener) {
+        listeners.remove(listener);
+    }
+    
     private void raiseUserStatusChangeEvent(String userName, boolean isOnline)
     {
-        for (DataTypes.UserListListener item : listeners) {
+        for (DataTypes.UserListListener item : listeners) 
             item.userStatusChanged(userName, isOnline);
-        }
     }
+    
 }

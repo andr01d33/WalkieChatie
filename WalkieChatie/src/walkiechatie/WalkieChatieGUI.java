@@ -9,6 +9,9 @@ import WalkieChatieLibrary.Mailbox;
 import DataContract.Contact;
 import DataContract.Letter;
 import WalkieChatieLibrary.MailboxClient;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.util.Map;
 import javax.swing.text.*;
@@ -39,18 +42,25 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
     portTextField.setText(new Integer(Config.SERVER_PORT_TCP).toString());
     
     // Initial help message:
-    String html = new String(); 
-    html  = "<p style=\"margin: 5px 0px\"><b>WalkieChatie 1.0</b></p>";
-    html += "<p style=\"margin: 5px 0px\"><b>Enter your name into the top-left field and click Connect.</b></p>";
-    html += "<p style=\"margin: 5px 0px\"><b>Select a user's name in the list to send them a private messge.</b></p>";
-    html += "<p style=\"margin: 0px\">&nbsp;</p>";
-    chatTextPane.setText(html);    
+    printHelp();
 
     // initial control states    
     connected = false;
     updateControlStates();
    
   } // WalkieChatieGUI
+  
+  public void printHelp() {
+    String html = new String(); 
+    html  = "<p style=\"margin: 5px 0px\"><b>WalkieChatie 1.0</b></p>";
+    html += "<p style=\"margin: 5px 0px\"><b>Enter your name and the chat server details above, and click Connect.</b></p>";
+/*    
+    html += "<p style=\"margin: 5px 0px\"><b>After connecting, tyype your message in the box below and click Send to select a user's name in the list to send them a private message. ";
+    html += "Click again on the name to clear the selection to send to all.</b></p>";
+*/    
+    html += "<p style=\"margin: 0px\">&nbsp;</p>";
+    chatTextPane.setText(html);    
+  }
 
   /**
    * This method is called from within the constructor to initialize the form.
@@ -112,10 +122,16 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
     jSplitPane1.setResizeWeight(1.0);
 
     jScrollPane4.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+    jScrollPane4.setAutoscrolls(true);
 
     chatTextPane.setEditable(false);
     chatTextPane.setContentType("text/html"); // NOI18N
     chatTextPane.setText("<html><body></body></html>");
+    chatTextPane.addKeyListener(new java.awt.event.KeyAdapter() {
+      public void keyPressed(java.awt.event.KeyEvent evt) {
+        chatTextPaneKeyPressed(evt);
+      }
+    });
     jScrollPane4.setViewportView(chatTextPane);
 
     jSplitPane1.setLeftComponent(jScrollPane4);
@@ -218,8 +234,8 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
       .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
         .addGroup(layout.createSequentialGroup()
           .addGap(60, 60, 60)
-          .addComponent(jSplitPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 365, javax.swing.GroupLayout.PREFERRED_SIZE)
-          .addContainerGap(79, Short.MAX_VALUE)))
+          .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 365, Short.MAX_VALUE)
+          .addGap(79, 79, 79)))
     );
 
     pack();
@@ -266,6 +282,14 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
     lastUserSelected = userSelected;
   }//GEN-LAST:event_userListMousePressed
 
+  private void chatTextPaneKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_chatTextPaneKeyPressed
+    if (evt.getKeyCode() == KeyEvent.VK_C && evt.isControlDown()) {
+      StringSelection stringSelection = new StringSelection(chatTextPane.getText());
+      Clipboard clpbrd = Toolkit.getDefaultToolkit().getSystemClipboard();
+      clpbrd.setContents(stringSelection, null);
+    }
+  }//GEN-LAST:event_chatTextPaneKeyPressed
+
   /**
    * @param args the command line arguments
    */
@@ -310,22 +334,26 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
     disconnectButton.setEnabled(connected);
     sendButton.setEnabled(connected);
     messageTextField.setEnabled(connected);
-    messageLabel.setText(connected ? "Broadcast message to all users:" : "Not connected");
+    messageLabel.setText(connected ? "Broadcast message to all users:" : "Not connected.");
   } // updateControlStates
+  
+  
+  public String stripSpecialChars(String input) {
+    return input.replaceAll("\\<|\\>|:|;", "");
+  } // stripIllegalChars
   
   
   public void connect() {
     // connect user to the chat server using name,server,port values from textfields ...
     // NOTE: not complete, MailboxClient should take server (and port?) values for Contact class...
     
-    String user = userTextField.getText();
+    String userName = stripSpecialChars(userTextField.getText());
     String serverAddr = serverTextField.getText();
     int serverPort = Integer.parseInt(portTextField.getText());
     
-    mailbox = new MailboxClient(user, serverAddr, serverPort); 
+    mailbox = new MailboxClient(userName, serverAddr, serverPort); 
     mailbox.addNewMessageListener(this);
     mailbox.addressBook.addUserListListener(this);
-    
     
     
     Letter returnLetter = mailbox.login();
@@ -334,7 +362,8 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
         connected = false;
         Letter infoLetter = new Letter(
                 DataTypes.MessageType.Message_Delivery_Failed,
-                user, Config.SERVER_NAME,
+                "", 
+                "Client",
                 "Connection failed, please check your server address settings.");
         showMessage(infoLetter);
     }
@@ -349,20 +378,27 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
       connected = true;
       updateControlStates();
       updateUserList();
+//      appendLine("<span style=\"color:green\">" + userName + " has connected.</span>");      
       messageTextField.requestFocusInWindow();
     }
   } // connect
   
   public void disconnect() {
     // logout mailbox and return GUI controls to disconnected state:
-    mailbox.logout();
+    mailbox.logout();    
+    
     connected = false;    
     updateControlStates();
     updateUserList();
+    
+//    chatTextPane.setText("");
+    appendLine("<span style=\"color:blue\">" + mailbox.owner.getName() + " has disconnected.</span>"); 
+//    printHelp();
+    userTextField.requestFocusInWindow();
   } // disconnect
   
   public void send() {
-    String msg = messageTextField.getText();
+    String msg = stripSpecialChars(messageTextField.getText());
     
     if (lastUserSelected != null)
       mailbox.send(lastUserSelected, msg);
@@ -377,10 +413,7 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
     // add message to the chat window, with custom colour and formatting 
     // depending on which type it is:
     
-    // delete < & > characters in case of HTML injection from someone
     String msg = letter.getMessage();
-    msg = msg.replace("<", "");
-    msg = msg.replace(">", "");
 
     DataTypes.MessageType msgType = letter.getMessageType();
     String type = " ";
@@ -398,7 +431,12 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
         break;
       case Message_Delivery_Failed:
         // error message from the server
-        appendLine("<span style=\"text-color:red\">Server: " + msg + "</span>");
+        appendLine("<span style=\"color:red\">" + letter.getSender() + ": " + msg + "</span>");
+        break;
+      case User_Logout:
+        if (connected)
+          disconnect();
+        break;
     }
 
   } // showMessage
@@ -425,6 +463,7 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
       try { 
         html = "<p style=\"margin-top:0px\">" + html + "</p>";
         htmlDocument.insertBeforeEnd(bodyElement, html);
+        chatTextPane.setCaretPosition(htmlDocument.getLength());
 //        System.out.println(chatTextPane.getText());        
       }
       catch (Exception e) {
@@ -458,7 +497,13 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
   
   @Override
   public void userStatusChanged(String userName, boolean isOnline) {
-//    System.out.println("User: " + userName + " is now " + (isOnline ? "online." : "offline."));
+
+    if (!mailbox.firstContact || mailbox.owner.getName().equalsIgnoreCase(userName)) 
+      if (isOnline)
+        appendLine("<span style=\"color:green\">" + userName + " has connected.</span>");
+      else
+        appendLine("<span style=\"color:blue\">" + userName + " has disconnected.</span>");    
+
     updateUserList();
   } // userStatusChanged
   

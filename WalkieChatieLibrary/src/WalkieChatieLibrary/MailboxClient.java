@@ -1,7 +1,10 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * MailboxClient is a Mailbox subclass designed to be instantiated by the chat
+ * client. It uses its Outbox & Inbox objects to send & receive Letters
+ * to & from the chat server (via TCP), and its AddressBook object to maintain a 
+ * list of users currently online (obtained via UDP). The innerclass ClientWatch 
+ * takes care of listening for UDP datagrams sent by the server's MailboxServer 
+ * object and updates the addressbook with the server's up-to-date user list.
  */
 package WalkieChatieLibrary;
 
@@ -22,21 +25,33 @@ import java.util.Arrays;
  */
 public class MailboxClient extends Mailbox {
   
+    public boolean firstContact;
+  
     public MailboxClient(String userName, String serverAddr, int serverPort) {
         super(new Contact(userName, Config.SERVER_ADDRESS, 0, 0, true));
         
-        server = new Contact("server", serverAddr, serverPort, 0, true);
+        server = new Contact("Server", serverAddr, serverPort, 0, true);
     }
     
     public final Contact server;
+    
     private ClientWatcher _clientWatcher;
-        //client login
+    
+    // client login
     public Letter login()
     { 
         //this will get a dynamic port TCP for inbox
         super.start();
         //set client's port (dynamically assigned by the system)
-        owner.setPort(inbox.Port);     
+        owner.setPort(inbox.Port); 
+        
+        
+        // set to false after first UDP packet received;
+        // this is so we know when we have received the first full list of 
+        // client statuses.
+        firstContact = true; 
+        
+        
         //this starts receiving user list, this will get a dynamic UDP port for updating user list
         startClientWatch();
         
@@ -122,12 +137,17 @@ public class MailboxClient extends Mailbox {
                     stackLetter(letter);
                     break;
                 case User_Update:
+                    break;                  
+                case User_Logout:
+                    if (letter.getRecipient().equalsIgnoreCase(owner.getName())) {
+                      stackLetter(letter);
+                    }
                     break;
             }
         } while (true);
     }
     
-    //Use UDP to refresh online client list
+    // Use UDP to refresh online client list
     private void startClientWatch()
     {
         _clientWatcher = new ClientWatcher();
@@ -164,36 +184,63 @@ public class MailboxClient extends Mailbox {
         @Override
         public void run() {
             
-            byte[] buffer = new byte[1024];
-            String strMsg;
+            byte[] buffer = new byte[65535];
+            String msg;
             boolean isOnline = false;
             
             try {
                 receiveDatagram = new DatagramPacket(buffer, buffer.length);
                 
                 while (bKeepRunning) {
-                    Arrays.fill(buffer, (byte)0); // clear buffer before receive
                   
-                    try{
+                    // clear buffer before receiving each new datagram
+                    Arrays.fill(buffer, (byte)0); 
+                  
+                    try {
                         socket.receive(receiveDatagram);
-                    }catch(SocketTimeoutException e){
+                    }
+                    catch (SocketTimeoutException e) 
+                    {
                         continue;
                     }
                     
-                    strMsg = new String(receiveDatagram.getData()).trim();
+                    msg = new String(receiveDatagram.getData()).trim();
+                    
+                    String[] users = msg.split(";");
+                    for (int i = 0; i < users.length; i++) {
+                      String[] parts = users[i].split(":");
+                      if (parts.length > 1) {
+                        isOnline = parts[1].equals("1");
+                        addressBook.updateStatus(parts[0], isOnline);
+                      }
+                    }
+                    
+                    firstContact = false; 
+                    
+/*                    
                     String[] strs = strMsg.split(":");
-                    if (strs.length >=2) {
+                    if (strs.length >= 2) {
                         isOnline = strs[0].equals("1");
                         
                         addressBook.updateStatus(strs[1], isOnline);
                     } 
+*/
                 }
                 
-            } catch (SocketException e) {
+                // clean up
+                socket.close();
+                
+            } 
+            catch (SocketException e) 
+            {
                 System.err.println("Unable to create socket: " + e);
-            }catch (IOException ex) {
+            }
+            catch (IOException ex) 
+            {
                 System.err.println("IO Exception: " + ex);
             } 
-        }
-    }
-}
+        } //run()
+        
+    } // ClientWatcher
+    
+} // MailboxClient
