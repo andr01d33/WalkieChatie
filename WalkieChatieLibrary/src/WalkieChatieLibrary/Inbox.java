@@ -12,28 +12,14 @@
  */
 package WalkieChatieLibrary;
 
-import DataContract.Config;
-import DataContract.Contact;
-import DataContract.Letter;
-import DataContract.DataTypes.MessageListener;
-import DataContract.DataTypes.MessageType;
-import java.beans.XMLDecoder;
-import java.beans.XMLEncoder;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import DataContract.*;
+import DataContract.DataTypes.*;
+import java.beans.*;
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.logging.*;
+
 
 public class Inbox extends Thread
 {
@@ -65,7 +51,9 @@ public class Inbox extends Thread
             Port = serverSocket.getLocalPort();
             owner.setPort(Port);
             
-            address = serverSocket.getInetAddress().toString();
+            //address = serverSocket.getInetAddress().toString();
+            address = InetAddress.getLocalHost().getHostAddress();
+            
             msg.setMessage(address);
         } catch (IOException ex) {
             msg.setMessageType(MessageType.Server_Failed);

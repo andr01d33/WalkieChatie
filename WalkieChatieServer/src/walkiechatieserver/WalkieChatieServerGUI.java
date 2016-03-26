@@ -239,11 +239,13 @@ public class WalkieChatieServerGUI extends javax.swing.JFrame implements DataTyp
     for (Map.Entry<String, Contact> entry : _mailbox.addressBook.map.entrySet())
       if (entry.getValue().getIsOnline())
         list.add(entry.getValue().getName());
-    Collections.sort(list);
-    String bootUser = JOptionPane.showInputDialog(this, null, "Boot Box", JOptionPane.PLAIN_MESSAGE, null, list.toArray(), null).toString();
-    if (bootUser != null) {
-      _mailbox.send(_mailbox.addressBook.Lookup(bootUser), 
-              new Letter(DataTypes.MessageType.User_Logout, bootUser, "Server", "You have been booted."));
+    if (list.size() > 0) {
+      Collections.sort(list);
+      String bootUser = JOptionPane.showInputDialog(this, null, "Boot Box", JOptionPane.PLAIN_MESSAGE, null, list.toArray(), null).toString();
+      if (bootUser != null) {
+        _mailbox.send(_mailbox.addressBook.Lookup(bootUser), 
+                new Letter(DataTypes.MessageType.User_Logout, bootUser, "Server", "You have been booted."));
+      }
     }
   }//GEN-LAST:event_btnBootActionPerformed
 
