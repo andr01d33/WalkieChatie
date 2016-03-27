@@ -336,18 +336,13 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
     messageTextField.setEnabled(connected);
     messageLabel.setText(connected ? "Broadcast message to all users:" : "Not connected.");
   } // updateControlStates
-  
-  
-  public String stripSpecialChars(String input) {
-    return input.replaceAll("\\<|\\>|:|;", "");
-  } // stripIllegalChars
-  
+    
   
   public void connect() {
     // connect user to the chat server using name,server,port values from textfields ...
     // NOTE: not complete, MailboxClient should take server (and port?) values for Contact class...
     
-    String userName = stripSpecialChars(userTextField.getText());
+    String userName = userTextField.getText().replaceAll("\\<|\\>|:|;", "");
     String serverAddr = serverTextField.getText();
     int serverPort = Integer.parseInt(portTextField.getText());
     
@@ -398,7 +393,7 @@ public class WalkieChatieGUI extends javax.swing.JFrame implements DataTypes.Mes
   } // disconnect
   
   public void send() {
-    String msg = stripSpecialChars(messageTextField.getText());
+    String msg = messageTextField.getText().replaceAll("\\<|\\>", "");
     
     if (lastUserSelected != null)
       mailbox.send(lastUserSelected, msg);
